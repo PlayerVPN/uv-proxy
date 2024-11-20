@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultraviolet Proxy</title>
+    <script src="/uv/uv.bundle.js"></script>
+    <script src="/uv/uv.config.js"></script>
+    <script src="/baremux/worker.js"></script>
+    <script>
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("/uv/sw.js");
+        });
+    }
+    </script>
+</head>
+<body>
+    <h1>Ultraviolet Proxy</h1>
+    <input type="text" id="urlInput" placeholder="Enter URL here">
+    <button id="searchButton">Search</button>
+    <iframe id="iframeWindow" class="iframeWindow" style="width: 100%; height: 80vh; border: none;"></iframe>
+
+    <script>
+        const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+        const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+        const bareUrl = (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/";
+
+        document.getElementById("searchButton").onclick = async function (event) {
+            event.preventDefault();
+
+            let url = document.getElementById("urlInput").value;
+            if (!url.includes(".")) {
+                url = "https://www.google.com/search?q=" + encodeURIComponent(url);
+            } else if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "https://" + url;
+            }
+
+            if (!await connection.getTransport()) {
+                await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+            }
+            document.getElementById("iframeWindow").src = __uv$config.prefix + __uv$config.encodeUrl(url);
+        };
+    </script>
+</body>
+</html>
